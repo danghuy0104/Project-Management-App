@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { UsersIcon, Search, UserPlus, Shield, Activity } from "lucide-react";
 import InviteMemberDialog from "../components/InviteMemberDialog";
 import { useSelector } from "react-redux";
+import Avatar from "../components/Avatar";
 
 const Team = () => {
 
@@ -132,11 +133,7 @@ const Team = () => {
                                         className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
                                     >
                                         <td className="px-6 py-2.5 whitespace-nowrap flex items-center gap-3">
-                                            <img
-                                                src={user.user.image}
-                                                alt={user.user.name}
-                                                className="size-7 rounded-full bg-gray-200 dark:bg-zinc-800"
-                                            />
+                                            <Avatar name={user.user.name} image={user.user.image} className="size-7 rounded-full" />
                                             <span className="text-sm text-zinc-800 dark:text-white truncate">
                                                     {user.user?.name || "Unknown User"}
                                                 </span>
@@ -168,11 +165,7 @@ const Team = () => {
                                     className="p-4 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900"
                                 >
                                     <div className="flex items-center gap-3 mb-2">
-                                        <img
-                                            src={user.user.image}
-                                            alt={user.user.name}
-                                            className="size-9 rounded-full bg-gray-200 dark:bg-zinc-800"
-                                        />
+                                        <Avatar name={user.user.name} image={user.user.image} className="size-9 rounded-full" />
                                         <div>
                                             <p className="font-medium text-gray-900 dark:text-white">
                                                 {user.user?.name || "Unknown User"}

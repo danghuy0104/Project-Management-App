@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 function MyTasksSidebar() {
 
-    const user = { id: 'user_1' }
+    const user = useSelector((state) => state.auth.user)
 
     const { currentWorkspace } = useSelector((state) => state.workspace);
     const [showMyTasks, setShowMyTasks] = useState(false);
@@ -38,7 +38,7 @@ function MyTasksSidebar() {
 
     useEffect(() => {
         fetchUserTasks()
-    }, [currentWorkspace])
+    }, [currentWorkspace, user])
 
     return (
         <div className="mt-6 px-3">

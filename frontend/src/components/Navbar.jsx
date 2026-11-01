@@ -1,13 +1,29 @@
-import { SearchIcon, PanelLeft } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { SearchIcon, PanelLeft, LogOutIcon } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toggleTheme } from '../features/themeSlice'
+import { logout } from '../features/authSlice'
 import { MoonIcon, SunIcon } from 'lucide-react'
-import { assets } from '../assets/assets'
+import Avatar from './Avatar'
 
 const Navbar = ({ setIsSidebarOpen }) => {
 
     const dispatch = useDispatch();
     const { theme } = useSelector(state => state.theme);
+    const user = useSelector(state => state.auth.user);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+
+    // Close user menu on outside click
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setIsMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <div className="w-full bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 px-6 xl:px-16 py-3 flex-shrink-0">
@@ -43,7 +59,23 @@ const Navbar = ({ setIsSidebarOpen }) => {
                     </button>
 
                     {/* User Button */}
-                    <img src={assets.profile_img_a} alt="User Avatar" className="size-7 rounded-full" />
+                    <div className="relative" ref={menuRef}>
+                        <button onClick={() => setIsMenuOpen((prev) => !prev)} aria-label="User menu" className="flex items-center">
+                            <Avatar name={user?.name} image={user?.image} className="size-7 rounded-full" />
+                        </button>
+
+                        {isMenuOpen && (
+                            <div className="absolute right-0 top-full mt-2 w-56 z-50 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded shadow-lg">
+                                <div className="p-3 border-b border-gray-200 dark:border-zinc-700">
+                                    <p className="text-sm font-medium text-gray-800 dark:text-white truncate">{user?.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-zinc-400 truncate">{user?.email}</p>
+                                </div>
+                                <button onClick={() => dispatch(logout())} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition">
+                                    <LogOutIcon className="size-4" /> Sign out
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { XIcon } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
+import { createProject } from "../features/workspaceSlice";
+import { getErrorMessage } from "../api/client";
 
 const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
@@ -20,9 +23,45 @@ const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const dispatch = useDispatch();
+
+    const resetForm = () => setFormData({
+        name: "",
+        description: "",
+        status: "PLANNING",
+        priority: "MEDIUM",
+        start_date: "",
+        end_date: "",
+        team_members: [],
+        team_lead: "",
+        progress: 0,
+    });
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!currentWorkspace) return;
 
+        setIsSubmitting(true);
+        try {
+            // team_lead và team_members là EMAIL; team_lead rỗng thì backend dùng chính người đang đăng nhập.
+            await dispatch(createProject({
+                name: formData.name,
+                description: formData.description,
+                status: formData.status,
+                priority: formData.priority,
+                start_date: formData.start_date,
+                end_date: formData.end_date,
+                team_lead: formData.team_lead,
+                team_members: formData.team_members,
+            })).unwrap();
+            toast.success("Project created successfully");
+            resetForm();
+            setIsDialogOpen(false);
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const removeTeamMember = (email) => {
@@ -118,9 +157,9 @@ const CreateProjectDialog = ({ isDialogOpen, setIsDialogOpen }) => {
                         >
                             <option value="">Add team members</option>
                             {currentWorkspace?.members
-                                ?.filter((email) => !formData.team_members.includes(email))
+                                ?.filter((member) => !formData.team_members.includes(member.user.email))
                                 .map((member) => (
-                                    <option key={member.user.email} value={member.email}>
+                                    <option key={member.user.email} value={member.user.email}>
                                         {member.user.email}
                                     </option>
                                 ))}

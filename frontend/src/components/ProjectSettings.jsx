@@ -1,19 +1,28 @@
-import { format } from "date-fns";
 import { Plus, Save } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import toast from "react-hot-toast";
 import AddProjectMember from "./AddProjectMember";
+import { updateProject } from "../features/workspaceSlice";
+import { getErrorMessage } from "../api/client";
+
+// The backend stores dates in UTC (e.g. 2025-10-10T00:00:00Z); input type="date" requires the format "yyyy-MM-dd".
+const toInputDate = (value) => (value ? new Date(value).toISOString().slice(0, 10) : "");
+
+const toFormData = (project) => ({
+    name: project.name,
+    description: project.description || "",
+    status: project.status,
+    priority: project.priority,
+    start_date: toInputDate(project.start_date),
+    end_date: toInputDate(project.end_date),
+    progress: project.progress ?? 0,
+});
 
 export default function ProjectSettings({ project }) {
 
-    const [formData, setFormData] = useState({
-        name: "New Website Launch",
-        description: "Initial launch for new web platform.",
-        status: "PLANNING",
-        priority: "MEDIUM",
-        start_date: "2025-09-10",
-        end_date: "2025-10-15",
-        progress: 30,
-    });
+    const dispatch = useDispatch();
+    const [formData, setFormData] = useState(() => toFormData(project));
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,11 +30,33 @@ export default function ProjectSettings({ project }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setIsSubmitting(true);
+        try {
+            await dispatch(updateProject({
+                projectId: project.id,
+                data: {
+                    name: formData.name,
+                    description: formData.description,
+                    status: formData.status,
+                    priority: formData.priority,
+                    start_date: formData.start_date,
+                    end_date: formData.end_date,
+                    progress: formData.progress,
+                },
+            })).unwrap();
+            toast.success("Project updated successfully");
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
+    // Đồng bộ lại form khi project được lưu/đổi; thêm thành viên (không đổi updatedAt) không làm mất chỉnh sửa đang gõ.
     useEffect(() => {
-        if (project) setFormData(project);
-    }, [project]);
+        setFormData(toFormData(project));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project.id, project.updatedAt]);
 
     const inputClasses = "w-full px-3 py-2 rounded mt-2 border text-sm dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-300";
 
@@ -78,11 +109,11 @@ export default function ProjectSettings({ project }) {
                     <div className="space-y-4 grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className={labelClasses}>Start Date</label>
-                            <input type="date" value={format(formData.start_date, "yyyy-MM-dd")} onChange={(e) => setFormData({ ...formData, start_date: new Date(e.target.value) })} className={inputClasses} />
+                            <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} className={inputClasses} />
                         </div>
                         <div className="space-y-2">
                             <label className={labelClasses}>End Date</label>
-                            <input type="date" value={format(formData.end_date, "yyyy-MM-dd")} onChange={(e) => setFormData({ ...formData, end_date: new Date(e.target.value) })} className={inputClasses} />
+                            <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className={inputClasses} />
                         </div>
                     </div>
 

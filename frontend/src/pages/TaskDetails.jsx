@@ -4,7 +4,9 @@ import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CalendarIcon, MessageCircle, PenIcon } from "lucide-react";
-import { assets } from "../assets/assets";
+import { commentApi } from "../api/endpoints";
+import { getErrorMessage } from "../api/client";
+import Avatar from "../components/Avatar";
 
 const TaskDetails = () => {
 
@@ -12,7 +14,7 @@ const TaskDetails = () => {
     const projectId = searchParams.get("projectId");
     const taskId = searchParams.get("taskId");
 
-    const user = { id : 'user_1'}
+    const user = useSelector((state) => state.auth.user);
     const [task, setTask] = useState(null);
     const [project, setProject] = useState(null);
     const [comments, setComments] = useState([]);
@@ -22,48 +24,40 @@ const TaskDetails = () => {
     const { currentWorkspace } = useSelector((state) => state.workspace);
 
     const fetchComments = async () => {
-
+        try {
+            const data = await commentApi.list(taskId);
+            setComments(data);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     const fetchTaskDetails = async () => {
-        setLoading(true);
-        if (!projectId || !taskId) return;
+        const proj = currentWorkspace?.projects.find((p) => p.id === projectId);
+        const tsk = proj?.tasks.find((t) => t.id === taskId);
 
-        const proj = currentWorkspace.projects.find((p) => p.id === projectId);
-        if (!proj) return;
-
-        const tsk = proj.tasks.find((t) => t.id === taskId);
-        if (!tsk) return;
-
-        setTask(tsk);
-        setProject(proj);
+        setTask(tsk || null);
+        setProject(proj || null);
         setLoading(false);
     };
 
     const handleAddComment = async () => {
         if (!newComment.trim()) return;
 
+        const toastId = toast.loading("Adding comment...");
         try {
+            const comment = await commentApi.add(taskId, newComment.trim());
 
-            toast.loading("Adding comment...");
-
-            //  Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-            const dummyComment = { id: Date.now(), user: { id: 1, name: "User", image: assets.profile_img_a }, content: newComment, createdAt: new Date() };
-
-            setComments((prev) => [...prev, dummyComment]);
+            setComments((prev) => [...prev, comment]);
             setNewComment("");
-            toast.dismissAll();
-            toast.success("Comment added.");
+            toast.success("Comment added.", { id: toastId });
         } catch (error) {
-            toast.dismissAll();
-            toast.error(error?.response?.data?.message || error.message);
+            toast.error(getErrorMessage(error), { id: toastId });
             console.error(error);
         }
     };
 
-    useEffect(() => { fetchTaskDetails(); }, [taskId]);
+    useEffect(() => { fetchTaskDetails(); }, [taskId, projectId, currentWorkspace]);
 
     useEffect(() => {
         if (taskId && task) {
@@ -91,7 +85,7 @@ const TaskDetails = () => {
                                 {comments.map((comment) => (
                                     <div key={comment.id} className={`sm:max-w-4/5 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-900 border border-gray-300 dark:border-zinc-700 p-3 rounded-md ${comment.user.id === user?.id ? "ml-auto" : "mr-auto"}`} >
                                         <div className="flex items-center gap-2 mb-1 text-sm text-gray-500 dark:text-zinc-400">
-                                            <img src={comment.user.image} alt="avatar" className="size-5 rounded-full" />
+                                            <Avatar name={comment.user.name} image={comment.user.image} className="size-5 rounded-full" />
                                             <span className="font-medium text-gray-900 dark:text-white">{comment.user.name}</span>
                                             <span className="text-xs text-gray-400 dark:text-zinc-600">
                                                 • {format(new Date(comment.createdAt), "dd MMM yyyy, HH:mm")}
@@ -149,7 +143,7 @@ const TaskDetails = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-zinc-300">
                         <div className="flex items-center gap-2">
-                            <img src={task.assignee?.image} className="size-5 rounded-full" alt="avatar" />
+                            <Avatar name={task.assignee?.name} image={task.assignee?.image} className="size-5 rounded-full" />
                             {task.assignee?.name || "Unassigned"}
                         </div>
                         <div className="flex items-center gap-2">
@@ -164,7 +158,7 @@ const TaskDetails = () => {
                     <div className="p-4 rounded-md bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-gray-300 dark:border-zinc-800 ">
                         <p className="text-xl font-medium mb-4">Project Details</p>
                         <h2 className="text-gray-900 dark:text-zinc-100 flex items-center gap-2"> <PenIcon className="size-4" /> {project.name}</h2>
-                        <p className="text-xs mt-3">Project Start Date: {format(new Date(project.start_date), "dd MMM yyyy")}</p>
+                        <p className="text-xs mt-3">Project Start Date: {project.start_date ? format(new Date(project.start_date), "dd MMM yyyy") : "Not set"}</p>
                         <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-zinc-400 mt-3">
                             <span>Status: {project.status}</span>
                             <span>Priority: {project.priority}</span>

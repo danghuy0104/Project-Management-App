@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Mail, UserPlus } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
+import { inviteWorkspaceMember } from "../features/workspaceSlice";
+import { getErrorMessage } from "../api/client";
 
 const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
 
@@ -11,9 +14,24 @@ const InviteMemberDialog = ({ isDialogOpen, setIsDialogOpen }) => {
         role: "org:member",
     });
 
+    const dispatch = useDispatch();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!currentWorkspace) return;
 
+        setIsSubmitting(true);
+        try {
+            // Backend thêm thành viên trực tiếp (người đó phải đã đăng ký tài khoản bằng email này).
+            await dispatch(inviteWorkspaceMember({ email: formData.email, role: formData.role })).unwrap();
+            toast.success("Member added to the workspace");
+            setFormData({ email: "", role: "org:member" });
+            setIsDialogOpen(false);
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (!isDialogOpen) return null;

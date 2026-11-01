@@ -1,6 +1,7 @@
 import { FolderOpen, CheckCircle, Users, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { workspaceApi } from "../api/endpoints";
 
 export default function StatsGrid() {
     const currentWorkspace = useSelector(
@@ -50,31 +51,25 @@ export default function StatsGrid() {
         },
     ];
 
+    // Data fetched from the backend (GET /api/workspaces/{id}/stats); reload whenever workspace data changes.
     useEffect(() => {
-        if (currentWorkspace) {
-            setStats({
-                totalProjects: currentWorkspace.projects.length,
-                activeProjects: currentWorkspace.projects.filter(
-                    (p) => p.status !== "CANCELLED" && p.status !== "COMPLETED"
-                ).length,
-                completedProjects: currentWorkspace.projects
-                    .filter((p) => p.status === "COMPLETED")
-                    .reduce((acc, project) => acc + project.tasks.length, 0),
-                myTasks: currentWorkspace.projects.reduce(
-                    (acc, project) =>
-                        acc +
-                        project.tasks.filter(
-                            (t) => t.assignee?.email === currentWorkspace.owner.email
-                        ).length,
-                    0
-                ),
-                overdueIssues: currentWorkspace.projects.reduce(
-                    (acc, project) =>
-                        acc + project.tasks.filter((t) => t.due_date < new Date()).length,
-                    0
-                ),
-            });
-        }
+        if (!currentWorkspace) return;
+        let cancelled = false;
+        workspaceApi.stats(currentWorkspace.id)
+            .then((data) => {
+                if (cancelled) return;
+                setStats({
+                    totalProjects: data.totalProjects,
+                    activeProjects: data.activeProjects,
+                    completedProjects: data.completedProjects,
+                    myTasks: data.myTasks,
+                    overdueIssues: data.overdueTasks,
+                });
+            })
+            .catch((error) => console.error("Failed to load workspace stats", error));
+        return () => {
+            cancelled = true;
+        };
     }, [currentWorkspace]);
 
     return (

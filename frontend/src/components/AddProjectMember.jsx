@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Mail, UserPlus } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
+import { addProjectMember } from "../features/workspaceSlice";
+import { getErrorMessage } from "../api/client";
 import { useSearchParams } from "react-router-dom";
 
 const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
@@ -17,9 +20,22 @@ const AddProjectMember = ({ isDialogOpen, setIsDialogOpen }) => {
     const [email, setEmail] = useState('');
     const [isAdding, setIsAdding] = useState(false);
 
+    const dispatch = useDispatch();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setIsAdding(true);
+        try {
+            await dispatch(addProjectMember({ projectId: id, email })).unwrap();
+            toast.success("Member added to the project");
+            setEmail("");
+            setIsDialogOpen(false);
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
+            setIsAdding(false);
+        }
     };
 
     if (!isDialogOpen) return null;

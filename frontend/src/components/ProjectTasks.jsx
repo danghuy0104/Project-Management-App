@@ -3,7 +3,9 @@ import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { deleteTask, updateTask } from "../features/workspaceSlice";
+import { changeTaskStatus, deleteTasks } from "../features/workspaceSlice";
+import { getErrorMessage } from "../api/client";
+import Avatar from "./Avatar";
 import { Bug, CalendarIcon, GitCommit, MessageSquare, Square, Trash, XIcon, Zap } from "lucide-react";
 
 const typeIcons = {
@@ -55,41 +57,26 @@ const ProjectTasks = ({ tasks }) => {
     };
 
     const handleStatusChange = async (taskId, newStatus) => {
+        const toastId = toast.loading("Updating status...");
         try {
-            toast.loading("Updating status...");
-
-            //  Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-            let updatedTask = structuredClone(tasks.find((t) => t.id === taskId));
-            updatedTask.status = newStatus;
-            dispatch(updateTask(updatedTask));
-
-            toast.dismissAll();
-            toast.success("Task status updated successfully");
+            await dispatch(changeTaskStatus({ taskId, status: newStatus })).unwrap();
+            toast.success("Task status updated successfully", { id: toastId });
         } catch (error) {
-            toast.dismissAll();
-            toast.error(error?.response?.data?.message || error.message);
+            toast.error(getErrorMessage(error), { id: toastId });
         }
     };
 
     const handleDelete = async () => {
+        const confirm = window.confirm("Are you sure you want to delete the selected tasks?");
+        if (!confirm) return;
+
+        const toastId = toast.loading("Deleting tasks...");
         try {
-            const confirm = window.confirm("Are you sure you want to delete the selected tasks?");
-            if (!confirm) return;
-
-            toast.loading("Deleting tasks...");
-
-            //  Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-            dispatch(deleteTask(selectedTasks));
-
-            toast.dismissAll();
-            toast.success("Tasks deleted successfully");
+            await dispatch(deleteTasks(selectedTasks)).unwrap();
+            setSelectedTasks([]);
+            toast.success("Tasks deleted successfully", { id: toastId });
         } catch (error) {
-            toast.dismissAll();
-            toast.error(error?.response?.data?.message || error.message);
+            toast.error(getErrorMessage(error), { id: toastId });
         }
     };
 
@@ -198,7 +185,7 @@ const ProjectTasks = ({ tasks }) => {
                                             </td>
                                             <td className="px-4 py-2">
                                                 <div className="flex items-center gap-2">
-                                                    <img src={task.assignee?.image} className="size-5 rounded-full" alt="avatar" />
+                                                    <Avatar name={task.assignee?.name} image={task.assignee?.image} className="size-5 rounded-full" />
                                                     {task.assignee?.name || "-"}
                                                 </div>
                                             </td>
@@ -257,7 +244,7 @@ const ProjectTasks = ({ tasks }) => {
                                         </div>
 
                                         <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                            <img src={task.assignee?.image} className="size-5 rounded-full" alt="avatar" />
+                                            <Avatar name={task.assignee?.name} image={task.assignee?.image} className="size-5 rounded-full" />
                                             {task.assignee?.name || "-"}
                                         </div>
 

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
+import { createTask } from "../features/workspaceSlice";
+import { getErrorMessage } from "../api/client";
 import { format } from "date-fns";
 
 export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, projectId }) {
@@ -19,10 +22,32 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
         due_date: "",
     });
 
+    const dispatch = useDispatch();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-
+        setIsSubmitting(true);
+        try {
+            await dispatch(createTask({
+                projectId,
+                data: {
+                    title: formData.title,
+                    description: formData.description,
+                    type: formData.type,
+                    status: formData.status,
+                    priority: formData.priority,
+                    assigneeId: formData.assigneeId,
+                    due_date: formData.due_date,
+                },
+            })).unwrap();
+            toast.success("Task created successfully");
+            setShowCreateTask(false);
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return showCreateTask ? (
@@ -70,8 +95,8 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Assignee</label>
-                            <select value={formData.assigneeId} onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })} className="w-full rounded dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-zinc-900 dark:text-zinc-200 text-sm mt-1" >
-                                <option value="">Unassigned</option>
+                            <select value={formData.assigneeId} onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })} required className="w-full rounded dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-zinc-900 dark:text-zinc-200 text-sm mt-1" >
+                                <option value="">Select assignee</option>
                                 {teamMembers.map((member) => (
                                     <option key={member?.user.id} value={member?.user.id}>
                                         {member?.user.email}
@@ -95,7 +120,7 @@ export default function CreateTaskDialog({ showCreateTask, setShowCreateTask, pr
                         <label className="text-sm font-medium">Due Date</label>
                         <div className="flex items-center gap-2">
                             <CalendarIcon className="size-5 text-zinc-500 dark:text-zinc-400" />
-                            <input type="date" value={formData.due_date} onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} min={new Date().toISOString().split('T')[0]} className="w-full rounded dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-zinc-900 dark:text-zinc-200 text-sm mt-1" />
+                            <input type="date" value={formData.due_date} onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} required min={new Date().toISOString().split('T')[0]} className="w-full rounded dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-zinc-900 dark:text-zinc-200 text-sm mt-1" />
                         </div>
                         {formData.due_date && (
                             <p className="text-xs text-zinc-500 dark:text-zinc-400">
