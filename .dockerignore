@@ -1,0 +1,20 @@
+# Exclude from the build context (shared by both frontend and backend)
+.git
+.gitignore
+.idea
+*.iml
+.vscode
+HELP.md
+target
+
+# Dependencies/build outputs that will be recreated in Docker
+**/node_modules
+**/dist
+
+.env
+.env.*
+**/.env
+**/.env.*
+
+Dockerfile
+docker-compose*.yml

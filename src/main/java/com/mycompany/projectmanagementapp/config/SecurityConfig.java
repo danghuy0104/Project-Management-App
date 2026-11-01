@@ -55,8 +55,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .anyRequest().authenticated())
+                        // Every other API endpoint requires a valid JWT.
+                        .requestMatchers("/api/**").authenticated()
+                        // Everything else is the bundled frontend (index.html, /assets/**) and /error: public.
+                        .anyRequest().permitAll())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService, userRepository),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
